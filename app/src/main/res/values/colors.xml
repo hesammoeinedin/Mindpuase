@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="night">#FF0B0E12</color>
+    <color name="sage">#FF8FB8A8</color>
+    <color name="ring_stroke">#FF5E8576</color>
+    <color name="ring_fill">#FF121A19</color>
+</resources>
