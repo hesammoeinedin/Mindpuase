@@ -38,6 +38,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mindpause.prefs
+import com.mindpause.service.BackgroundHelp
 import com.mindpause.service.Notifications
 import com.mindpause.ui.theme.MP
 
@@ -185,7 +186,14 @@ fun PermissionsScreen(tick: Int, onNext: () -> Unit) {
 }
 
 @Composable
-private fun PermissionCard(title: String, body: String, granted: Boolean, onAllow: () -> Unit) {
+fun PermissionCard(
+    title: String,
+    body: String,
+    granted: Boolean,
+    onAllow: () -> Unit,
+    actionLabel: String = "Allow",
+    grantedLabel: String = "Allowed",
+) {
     Card {
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(title, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
@@ -193,7 +201,7 @@ private fun PermissionCard(title: String, body: String, granted: Boolean, onAllo
         }
         if (granted) {
             Box(Modifier.height(44.dp), contentAlignment = Alignment.CenterStart) {
-                Text("Allowed", fontSize = 15.sp, fontWeight = FontWeight.Medium, color = MP.Sage)
+                Text(grantedLabel, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = MP.Sage)
             }
         } else {
             val shape = RoundedCornerShape(22.dp)
@@ -206,34 +214,52 @@ private fun PermissionCard(title: String, body: String, granted: Boolean, onAllo
                     .padding(horizontal = 22.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                Text("Allow", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = MP.Sage)
+                Text(actionLabel, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = MP.Sage)
             }
         }
     }
 }
 
 @Composable
-fun BatteryScreen(onOpenSettings: () -> Unit, onSkip: () -> Unit) {
+fun BatteryScreen(onDone: () -> Unit) {
     OnboardingFrame(
         step = 4,
-        bottom = {
-            PrimaryButton("Open battery settings", onOpenSettings)
-            SecondaryButton("Skip for now", onSkip)
-        },
+        bottom = { PrimaryButton("Done", onDone) },
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Heading("Let MindPause stay awake.")
-            Body("Some phones close background apps to save battery. If yours does, check-ins won't arrive.")
+            Body("So it starts with your phone and keeps running, even after you close all apps.")
         }
-        Card {
-            Text("In app settings", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = MP.Mist)
-            Text("1.  Open Battery (or App battery usage)", fontSize = 15.sp, lineHeight = 22.sp, color = MP.Muted)
-            Text("2.  Choose “Unrestricted” or “Don't optimise”", fontSize = 15.sp, lineHeight = 22.sp, color = MP.Muted)
-            Text(
-                "MindPause uses almost no battery. It only listens for the screen turning on and off.",
-                fontSize = 13.sp,
-                lineHeight = 20.sp,
-                color = MP.Faint,
+        KeepRunningCards()
+        Text(
+            "MindPause uses almost no battery. It only listens for the screen turning on and off.",
+            fontSize = 13.sp,
+            lineHeight = 20.sp,
+            color = MP.Faint,
+        )
+    }
+}
+
+/** Battery exemption and, on phones that need it, auto-start. Used in setup and Settings. */
+@Composable
+fun KeepRunningCards() {
+    val context = LocalContext.current
+    val tick = rememberResumeTick()
+    val batteryOk = remember(tick) { BackgroundHelp.isBatteryUnrestricted(context) }
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        PermissionCard(
+            title = "Run without battery limits",
+            body = "So Android doesn't stop MindPause in the background, and lets it restart itself.",
+            granted = batteryOk,
+            onAllow = { BackgroundHelp.requestBatteryUnrestricted(context) },
+        )
+        if (BackgroundHelp.needsAutostart()) {
+            PermissionCard(
+                title = "Auto-start",
+                body = "Your phone also needs this so MindPause starts when the phone turns on. Turn MindPause on in the list.",
+                granted = false,
+                onAllow = { BackgroundHelp.openAutostart(context) },
+                actionLabel = "Open auto-start settings",
             )
         }
     }

@@ -68,7 +68,12 @@ class PauseService : Service() {
         audio = getSystemService(AudioManager::class.java)
         overlay = CheckInOverlay(this, onDone = ::onDone, onMore = ::onMore)
 
-        startInForeground()
+        if (!startInForeground()) {
+            stopSelf()
+            return
+        }
+        isRunning = true
+        KeepAlive.schedule(this)
 
         val filter = IntentFilter().apply {
             addAction(Intent.ACTION_SCREEN_OFF)
@@ -82,7 +87,10 @@ class PauseService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         // Every start must call startForeground again on some Android versions.
-        startInForeground()
+        if (!startInForeground()) {
+            stopSelf()
+            return START_NOT_STICKY
+        }
         when (intent?.action) {
             ACTION_PAUSE -> pause()
             ACTION_RESUME -> endPause()
@@ -91,13 +99,25 @@ class PauseService : Service() {
         return START_STICKY
     }
 
+    /** The app was swiped away from recents: make sure the service comes back. */
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        super.onTaskRemoved(rootIntent)
+        KeepAlive.schedule(this, KeepAlive.RESTART_DELAY_MS)
+    }
+
     override fun onDestroy() {
+        val wasRunning = isRunning
+        isRunning = false
         try {
             unregisterReceiver(screenReceiver)
         } catch (_: Exception) {
         }
         overlay.hide()
         scope.cancel()
+        // Stopped by the system rather than by the user turning MindPause off: come back.
+        if (wasRunning && prefs.enabled && prefs.onboardingDone) {
+            KeepAlive.schedule(this, KeepAlive.RESTART_DELAY_MS)
+        }
         super.onDestroy()
     }
 
@@ -242,13 +262,17 @@ class PauseService : Service() {
 
     // --- Notification -------------------------------------------------------
 
-    private fun startInForeground() {
+    /** False if Android refused (e.g. a background start without an exemption). */
+    private fun startInForeground(): Boolean = try {
         val notification = Notifications.running(this, prefs)
         if (Build.VERSION.SDK_INT >= 34) {
             startForeground(Notifications.ID_RUNNING, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
         } else {
             startForeground(Notifications.ID_RUNNING, notification)
         }
+        true
+    } catch (_: Exception) {
+        false
     }
 
     private fun updateNotification() {
@@ -261,6 +285,11 @@ class PauseService : Service() {
     }
 
     companion object {
+        /** True while the service is up in this process. */
+        @Volatile
+        var isRunning = false
+            private set
+
         const val ACTION_PAUSE = "com.mindpause.PAUSE"
         const val ACTION_RESUME = "com.mindpause.RESUME"
         const val ACTION_REFRESH = "com.mindpause.REFRESH"

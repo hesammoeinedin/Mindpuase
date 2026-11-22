@@ -79,12 +79,7 @@ private fun MindPauseRoot() {
             Screen.INTERVAL -> IntervalScreen(onNext = { screen = Screen.PERMISSIONS })
             Screen.PERMISSIONS -> PermissionsScreen(tick, onNext = { screen = Screen.BATTERY })
             Screen.BATTERY -> BatteryScreen(
-                onOpenSettings = {
-                    finishOnboarding(context)
-                    openAppDetails(context)
-                    screen = Screen.HOME
-                },
-                onSkip = {
+                onDone = {
                     finishOnboarding(context)
                     screen = Screen.HOME
                 },

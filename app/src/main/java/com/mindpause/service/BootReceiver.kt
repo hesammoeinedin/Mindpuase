@@ -9,9 +9,13 @@ import com.mindpause.summary.EveningScheduler
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         when (intent.action) {
-            Intent.ACTION_BOOT_COMPLETED, Intent.ACTION_MY_PACKAGE_REPLACED -> {
+            Intent.ACTION_BOOT_COMPLETED,
+            Intent.ACTION_MY_PACKAGE_REPLACED,
+            "android.intent.action.QUICKBOOT_POWERON",
+            "com.htc.intent.action.QUICKBOOT_POWERON" -> {
                 EveningScheduler.schedule(context)
                 ServiceControl.startIfEnabled(context)
+                KeepAlive.schedule(context)
             }
         }
     }

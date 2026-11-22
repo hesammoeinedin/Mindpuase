@@ -67,7 +67,7 @@ Download the APK from the [Releases](../../releases) page and open it on your ph
 
 Requires Android 8.0 (API 26) or newer.
 
-**Tip:** some phones (Samsung, Xiaomi, Huawei, OnePlus) close background apps aggressively. If check-ins stop arriving, set MindPause's battery usage to **Unrestricted** in app settings.
+**Keep it running:** during setup (or later in Settings → Keep running), tap **Allow** for "Run without battery limits". On Xiaomi, Huawei, Oppo, OnePlus and Vivo phones, also turn MindPause on in **auto-start**. MindPause then starts with the phone and comes back after you close all apps.
 
 ## Build from source
 

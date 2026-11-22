@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.sp
 import com.mindpause.domain.DailyLine
 import com.mindpause.domain.EscalationPolicy
 import com.mindpause.prefs
+import com.mindpause.service.BackgroundHelp
 import com.mindpause.service.PauseService
 import com.mindpause.service.ServiceControl
 import com.mindpause.ui.theme.MP
@@ -53,6 +54,7 @@ fun HomeScreen(tick: Int, onSettings: () -> Unit) {
     val enabled = remember(refresh) { prefs.enabled }
     val paused = remember(refresh) { prefs.isPaused() }
     val overlayOk = remember(refresh) { Settings.canDrawOverlays(context) }
+    val batteryOk = remember(refresh) { BackgroundHelp.isBatteryUnrestricted(context) }
 
     val statusTitle = when {
         !enabled -> "MindPause is off"
@@ -96,6 +98,12 @@ fun HomeScreen(tick: Int, onSettings: () -> Unit) {
                     Text("Check-ins can't appear yet", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                     Text("Allow “Display over other apps” for MindPause.", fontSize = 14.sp, color = MP.Muted)
                     TextLink("Open setting", { openOverlaySettings(context) }, color = MP.Sage)
+                }
+            } else if (enabled && !batteryOk) {
+                Card {
+                    Text("MindPause may stop in the background", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                    Text("Let it run without battery limits so it keeps going after you close all apps.", fontSize = 14.sp, lineHeight = 21.sp, color = MP.Muted)
+                    TextLink("Allow", { BackgroundHelp.requestBatteryUnrestricted(context) }, color = MP.Sage)
                 }
             }
             SwitchRow(statusTitle, statusSub, checked = enabled) { on ->
@@ -184,10 +192,14 @@ fun SettingsScreen(onBack: () -> Unit) {
                 evening = it
                 prefs.eveningLine = it
             }
-            Card(Modifier.clickable(role = Role.Button) { openAppDetails(context) }) {
-                Text("Keep running", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                Text("Battery settings for this phone", fontSize = 14.sp, color = MP.Muted)
-            }
+            Text(
+                "Keep running",
+                Modifier.padding(start = 8.dp, top = 12.dp),
+                fontSize = 14.sp,
+                color = MP.Muted,
+                letterSpacing = 0.5.sp,
+            )
+            KeepRunningCards()
         }
         Spacer(Modifier.size(8.dp))
         Column(Modifier.padding(horizontal = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -197,7 +209,7 @@ fun SettingsScreen(onBack: () -> Unit) {
                 lineHeight = 22.sp,
                 color = MP.Muted,
             )
-            Text("Version 1.0", fontSize = 13.sp, color = MP.Faint)
+            Text("Version 1.1", fontSize = 13.sp, color = MP.Faint)
         }
     }
 }
